@@ -7,8 +7,25 @@
 // Simplify coding by using sf namespace for sfml library calls
 using namespace sf;
 
+/*
+***********************************************
+Function Declarations
+********************************************
+*/
+//takes in an int seed as a parameter
+void updateBranches(int seed);
+const int NUM_BRANCHES = 6;
+Sprite branches[NUM_BRANCHES];
+//Where is the player /branch?
+//Left or Right?
+enum class side {LEFT, RIGHT, NONE };
+side branchPositions[NUM_BRANCHES];
 
-//main loop
+/*
+***********************************************
+Main Loop
+********************************************
+*/
 int main()
 {
 	// Low res code
@@ -129,7 +146,66 @@ int main()
 		textRect.height / 2.0f);
 	messageText.setPosition(1920 / 2.0f, 1080 / 2.0f);
 	scoreText.setPosition(20, 20);
+	
+	//Prepate 6 branches
+	Texture textureBranch;
+	textureBranch.loadFromFile("graphics/branch.png");
+	// Set the texture for each branch sprite
+	for (int i = 0; i < NUM_BRANCHES; i++)
+	{
+		branches[i].setTexture(textureBranch);
+		branches[i].setPosition(-2000, -2000);
+		// Set the sprite's origin to dead center
+		// We can then spin it round without changing its position
+		branches[i].setOrigin(220, 40);
+	}
 
+	// Prepare the player
+	Texture texturePlayer;
+	texturePlayer.loadFromFile("graphics/player.png");
+	Sprite spritePlayer;
+	spritePlayer.setTexture(texturePlayer);
+	spritePlayer.setPosition(580, 720);
+
+	// The player starts on the left
+	side playerSide = side::LEFT;
+
+	//Prepare the gravestone
+	Texture textureRIP;
+	textureRIP.loadFromFile("graphics/rip.png");
+	Sprite spriteRIP;
+	spriteRIP.setTexture(textureRIP);
+	spriteRIP.setPosition(600, 860);
+
+	//Prepare the axe
+	Texture textureAxe;
+	textureAxe.loadFromFile("graphics/axe.png");
+	Sprite spriteAxe;
+	spriteAxe.setTexture(textureAxe);
+	spriteAxe.setPosition(700, 830);
+
+	// Line the axe up with the tree
+	const float AXE_POSITION_LEFT = 700;
+	const float AXE_POSITION_RIGHT = 1075;
+
+	//Prepare the flying log
+	Texture textureLog;
+	textureLog.loadFromFile("graphics/log.png");
+	Sprite spriteLog;
+	spriteLog.setTexture(textureLog);
+	spriteLog.setPosition(810, 720);
+
+	// Some other useful log related variables
+	bool logActive = false;
+	float logSpeedX = 1000;
+	float logSpeedY = -1500;
+
+	
+	/*
+	******************************************
+	Active Loop
+	***************************************
+	*/
 	while (window.isOpen())
 	{
 		
@@ -316,7 +392,30 @@ int main()
 			ss << "Score = " << score;
 			scoreText.setString(ss.str());
 			
-
+			// update the branch sprites
+			for (int i = 0; i < NUM_BRANCHES; i++)
+			{
+				float height = i * 150;
+				if (branchPositions[i] == side::LEFT)
+				{
+					// Move the sprite to the left side
+					branches[i].setPosition(610, height);
+					// Flip the sprite round the other way
+					branches[i].setRotation(180);
+				}
+				else if (branchPositions[i] == side::RIGHT)
+				{
+					// Move the sprite to the right side
+					branches[i].setPosition(1330, height);
+					//set the sprite rotation to normal
+					branches[i].setRotation(0);
+				}
+				else
+				{
+					// Hide the branches
+					branches[i].setPosition(3000, height);
+				}
+			}
 		} // End if(!paused)
 		/*
 		******************************
@@ -334,6 +433,12 @@ int main()
 		window.draw(spriteCloud1);
 		window.draw(spriteCloud2);
 		window.draw(spriteCloud3);
+
+		// Draw the branches
+		for (int i = 0; i < NUM_BRANCHES; i++)
+		{
+			window.draw(branches[i]);
+		}
 
 		// Draw the tree
 		window.draw(spriteTree);
@@ -359,7 +464,40 @@ int main()
 
 
 
-	}
+	}//End while (window.isopen()) loop
 
 	return 0;
+}
+
+/*
+********************************
+Function definitions
+***********************************
+*/
+
+void updateBranches(int seed)
+{
+	// Move all the branches down one place
+	for (int j = NUM_BRANCHES - 1; j > 0; j--)
+	{
+		branchPositions[j] = branchPositions[j - 1];
+	}
+	// Spawn a new branch at position 0
+	//LEFT, RIGHT or NONE
+	srand((int)time(0) + seed);
+	int r = (rand()% 5);
+	switch (r)
+	{
+	case 0:
+		branchPositions[0] = side::LEFT;
+		break;
+	case 1:
+		branchPositions[0] = side::LEFT;
+		break;
+	default:
+		branchPositions[0] = side::NONE;
+		break;
+	}
+
+		
 }
