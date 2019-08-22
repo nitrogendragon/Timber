@@ -31,8 +31,11 @@ int main()
 	// Low res code
 	VideoMode vm(1920, 1080);
 
+	//Create and open a fullscreen window for the game
+	//RenderWindow window(vm, "Timber!!!", Style::Fullscreen);
+
 	//Create and open a window for the game
-	RenderWindow window(vm, "Timber!!!", Style::Fullscreen);
+	RenderWindow window(vm, "Timber!!!");
 
 	// Set the viewmode
 	View view(FloatRect(0, 0, 1920, 1080));
@@ -119,8 +122,10 @@ int main()
 
 	// Draw some text
 	int score = 0;
+	int highScore = 0;
 	sf::Text messageText;
 	sf::Text scoreText;
+	sf::Text highScoreText;
 
 	//Choose a font
 	Font font;
@@ -129,14 +134,17 @@ int main()
 	// Set the font to our message
 	messageText.setFont(font);
 	scoreText.setFont(font);
+	highScoreText.setFont(font);
 
 	// Assign the actual message
 	messageText.setString("Press Enter to start!");
-	scoreText.setString("Score = 0" + score);
+	scoreText.setString("Score = 0");
+	highScoreText.setString("HIGHSCORE = 0");
 
 	// Make it really big
 	messageText.setCharacterSize(75);
 	scoreText.setCharacterSize(100);
+	highScoreText.setCharacterSize(100);
 
 	// Position the text
 	FloatRect textRect = messageText.getLocalBounds();
@@ -146,6 +154,7 @@ int main()
 		textRect.height / 2.0f);
 	messageText.setPosition(1920 / 2.0f, 1080 / 2.0f);
 	scoreText.setPosition(20, 20);
+	highScoreText.setPosition(1000, 20);
 	
 	//Prepate 6 branches
 	Texture textureBranch;
@@ -182,10 +191,11 @@ int main()
 	textureAxe.loadFromFile("graphics/axe.png");
 	Sprite spriteAxe;
 	spriteAxe.setTexture(textureAxe);
-	spriteAxe.setPosition(700, 830);
+	spriteAxe.setRotation(180);
+	spriteAxe.setPosition(850, 830);
 
 	// Line the axe up with the tree
-	const float AXE_POSITION_LEFT = 700;
+	const float AXE_POSITION_LEFT = 850;
 	const float AXE_POSITION_RIGHT = 1075;
 
 	//Prepare the flying log
@@ -200,7 +210,8 @@ int main()
 	float logSpeedX = 1000;
 	float logSpeedY = -1500;
 
-	
+	// Control the player input
+	bool acceptInput = false;
 	/*
 	******************************************
 	Active Loop
@@ -214,6 +225,20 @@ int main()
 		Handle the players input
 		******************************
 		*/
+
+		Event event;
+		while (window.pollEvent(event))
+		{
+			if (event.type == Event::KeyReleased && !paused)
+			{
+				//Listen for key presses again
+				acceptInput = true;
+
+				// hide the axe
+				spriteAxe.setPosition(2000, spriteAxe.getPosition().y);
+			}
+		}
+
 		if (Keyboard::isKeyPressed(Keyboard::Escape))
 		{
 			window.close();
@@ -228,10 +253,89 @@ int main()
 			score = 0;
 			timeRemaining = 6.0f;
 
+			//Make all the branches disappear
+			for (int i = 1; i < NUM_BRANCHES; i++)
+			{
+				branchPositions[i] = side::NONE;
+			}
+
+			//Make sure the gravestone is hidden
+			spriteRIP.setPosition(675, 2000);
+
+			// Move the player into position
+			spritePlayer.setPosition(580, 720);
+			acceptInput = true;
+
 			//essentially calling to get two calls in quick succession 
 			//so that we don't have a potential 10 seconds of passed time since last game ended
 			deltaTime = clock.restart();
 			
+		}
+
+		//wrap the player controls to
+		//Make sure we are accepting input
+		if (acceptInput)
+		{
+			// More code here next...
+			// First handle pressing the right cursor key
+			if (Keyboard::isKeyPressed(Keyboard::Right))
+			{
+				//Make sure the player is on the right side
+				playerSide = side::RIGHT;
+				score++;
+
+				// Add to the amount of time remaining
+				timeRemaining += (2 / score) + .15;
+
+				//Make sure axe is on the right side
+				spriteAxe.setPosition(AXE_POSITION_RIGHT,
+					spriteAxe.getPosition().y);
+
+				//reset axe rotation
+				spriteAxe.setRotation(0);
+
+				spritePlayer.setPosition(1200, 720);
+
+				// update the branches
+				updateBranches(score);
+
+				// set the log flying to the left
+				spriteLog.setPosition(810, 720);
+				logSpeedX = -5000;
+				logActive = true;
+
+				acceptInput = false;
+			}
+
+			// Handle the left cursor key
+			else if (Keyboard::isKeyPressed(Keyboard::Left))
+			{
+				//Make sure the player is on the right side
+				playerSide = side::LEFT;
+				score++;
+
+				// Add to the amount of time remaining
+				timeRemaining += (2 / score) + .15;
+
+				//Make sure axe is on the right side
+				spriteAxe.setPosition(AXE_POSITION_LEFT,
+					spriteAxe.getPosition().y);
+
+				//flip the axe over
+				spriteAxe.setRotation(180);
+
+				spritePlayer.setPosition(580, 720);
+
+				// update the branches
+				updateBranches(score);
+
+				// set the log flying to the left
+				spriteLog.setPosition(810, 720);
+				logSpeedX = 5000;
+				logActive = true;
+
+				acceptInput = false;
+			}
 		}
 		
 		/*
@@ -392,6 +496,13 @@ int main()
 			ss << "Score = " << score;
 			scoreText.setString(ss.str());
 			
+			//Update HighScore
+			if (score > highScore) 
+			{
+				highScore = score;
+				highScoreText.setString(ss.str());
+			}
+			
 			// update the branch sprites
 			for (int i = 0; i < NUM_BRANCHES; i++)
 			{
@@ -416,6 +527,61 @@ int main()
 					branches[i].setPosition(3000, height);
 				}
 			}
+
+			//Handle a flying log
+			if (logActive)
+			{
+				spriteLog.setPosition(
+					spriteLog.getPosition().x +
+					(logSpeedX * deltaTime.asSeconds()),
+					spriteLog.getPosition().y +
+					(logSpeedY * deltaTime.asSeconds()));
+
+				// Has the log reached the right or left hand edge?
+				if (spriteLog.getPosition().x < -100 ||
+					spriteLog.getPosition().x > 2000)
+				{
+					//Set it up ready to be a whole new log next frame
+					logActive = false;
+					spriteLog.setPosition(810, 720);
+				}
+			}
+
+			// Has the player been squished by a branch?
+			if (branchPositions[5] == playerSide)
+			{
+				// death
+				paused = true;
+				acceptInput = false;
+
+				//Check side player died on
+				if (playerSide == side::LEFT) {
+					// Draw the gravestone
+					spriteRIP.setPosition(525, 760);
+				}
+				else
+				{
+					spriteRIP.setPosition(1225, 760);
+				}
+
+				// hide the player
+				spritePlayer.setPosition(2000, 660);
+
+				// Change the text of the message
+				messageText.setString("Branchinated!!");
+
+				// Center it on the screen
+				FloatRect textRect = messageText.getLocalBounds();
+
+				messageText.setOrigin(textRect.left +
+					textRect.width / 2.0f,
+					textRect.top + textRect.height / 2.0f);
+
+				messageText.setPosition(1920 / 2.0f,
+					1080 / 2.0f);
+			}
+
+
 		} // End if(!paused)
 		/*
 		******************************
@@ -429,10 +595,13 @@ int main()
 		//Draw our game scene here
 		window.draw(spriteBackground);
 
-		//Draw the coulds
-		window.draw(spriteCloud1);
+		// Draw score
+		window.draw(scoreText);
+
+
+		//Draw the clouds
 		window.draw(spriteCloud2);
-		window.draw(spriteCloud3);
+		
 
 		// Draw the branches
 		for (int i = 0; i < NUM_BRANCHES; i++)
@@ -443,11 +612,27 @@ int main()
 		// Draw the tree
 		window.draw(spriteTree);
 
+		// Draw highScore
+		window.draw(highScoreText);
+
+		//draw the player
+		window.draw(spritePlayer);
+
+		//draw another cloud
+		window.draw(spriteCloud1);
+		window.draw(spriteCloud3);
+
+		// Draw the axe
+		window.draw(spriteAxe);
+
+		// Draw the flying log
+		window.draw(spriteLog);
+
+		// Draw the gravestone
+		window.draw(spriteRIP);
+
 		// Draw the insect
 		window.draw(spriteBee);
-
-		// Draw score
-		window.draw(scoreText);
 
 		// Draw the timebar
 		window.draw(timeBar);
@@ -492,7 +677,7 @@ void updateBranches(int seed)
 		branchPositions[0] = side::LEFT;
 		break;
 	case 1:
-		branchPositions[0] = side::LEFT;
+		branchPositions[0] = side::RIGHT;
 		break;
 	default:
 		branchPositions[0] = side::NONE;
