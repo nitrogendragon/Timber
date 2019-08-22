@@ -83,6 +83,20 @@ int main()
 	// Variables to control time itself
 	Clock clock;
 
+	//Our current frame time passed since previous frame
+	Time deltaTime;
+
+	// Time bar
+	RectangleShape timeBar;
+	float timeBarStartWidth = 480;
+	float timeBarHeight = 80;
+	timeBar.setSize(Vector2f(timeBarStartWidth, timeBarHeight));
+	timeBar.setFillColor(Color::Red);
+	timeBar.setPosition((1920 / 2) - timeBarStartWidth / 2, 980);
+
+	Time gameTimeTotal;
+	float timeRemaining = 6.0f;
+	float timeBarWidthPerSecond = timeBarStartWidth / timeRemaining;
 	// Track whether the game is running
 	bool paused = true;
 
@@ -118,6 +132,7 @@ int main()
 
 	while (window.isOpen())
 	{
+		
 		/*
 		******************************
 		Handle the players input
@@ -132,6 +147,14 @@ int main()
 		if (Keyboard::isKeyPressed(Keyboard::Return) && paused == true)
 		{
 			paused = false;
+
+			// reset the time and the score
+			score = 0;
+			timeRemaining = 6.0f;
+
+			//essentially calling to get two calls in quick succession 
+			//so that we don't have a potential 10 seconds of passed time since last game ended
+			deltaTime = clock.restart();
 			
 		}
 		
@@ -143,9 +166,30 @@ int main()
 
 		if (!paused) 
 		{
-			//Measure time
-			Time deltaTime = clock.restart();
+			//Measure time since last frame
+			deltaTime = clock.restart();
 
+			// Subtract from the amount of time remaining
+			timeRemaining -= deltaTime.asSeconds();
+			//size up the time bar
+			timeBar.setSize(Vector2f(timeBarWidthPerSecond * timeRemaining, timeBarHeight));
+
+			if (timeRemaining <= 0.0f)
+			{
+				//pause the game
+				paused = true;
+
+				// Change the message shown to the player
+				messageText.setString("Out of time!!");
+
+				// Reposition the text based on its new size
+				FloatRect textRect = messageText.getLocalBounds();
+				messageText.setOrigin(textRect.left +
+					textRect.width / 2.0f,
+					textRect.top +
+					textRect.height / 2.0f);
+				messageText.setPosition(1920 / 2.0f, 1080 / 2.0f);
+			}
 			// Setup the bee
 			if (!beeActive)
 			{
@@ -300,8 +344,12 @@ int main()
 		// Draw score
 		window.draw(scoreText);
 
+		// Draw the timebar
+		window.draw(timeBar);
+
 		if (paused)
 		{
+		
 			//Draw our message
 			window.draw(messageText);
 		}
