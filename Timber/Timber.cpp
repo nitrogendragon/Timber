@@ -2,8 +2,10 @@
 
 #include "pch.h"
 #include <sstream>
+#include <stdlib.h>
+#include <iostream>
 #include <SFML/Graphics.hpp>
-
+#include <SFML/Audio.hpp>
 // Simplify coding by using sf namespace for sfml library calls
 using namespace sf;
 
@@ -184,7 +186,7 @@ int main()
 	textureRIP.loadFromFile("graphics/rip.png");
 	Sprite spriteRIP;
 	spriteRIP.setTexture(textureRIP);
-	spriteRIP.setPosition(600, 860);
+	spriteRIP.setPosition(2600, 860);
 
 	//Prepare the axe
 	Texture textureAxe;
@@ -212,6 +214,30 @@ int main()
 
 	// Control the player input
 	bool acceptInput = false;
+
+	// Prepare the sound
+	SoundBuffer chopBuffer;
+	chopBuffer.loadFromFile("sound/chop.wav");
+	Sound chop;
+	chop.setBuffer(chopBuffer);
+
+	//death sound
+	SoundBuffer deathBuffer;
+	deathBuffer.loadFromFile("sound/death.wav");
+	Sound death;
+	death.setBuffer(deathBuffer);
+	
+	//Out of time
+	SoundBuffer ootBuffer;
+	ootBuffer.loadFromFile("sound/out_of_time.wav");
+	Sound outOfTime;
+	outOfTime.setBuffer(ootBuffer);
+
+	//Main music Final Fantasy battle theme music for fun
+	SoundBuffer battleBuffer;
+	battleBuffer.loadFromFile("sound/Gyakkou_no_Flugel.ogg");
+	Sound battleMusic;
+	battleMusic.setBuffer(battleBuffer);
 	/*
 	******************************************
 	Active Loop
@@ -235,7 +261,7 @@ int main()
 				acceptInput = true;
 
 				// hide the axe
-				spriteAxe.setPosition(2000, spriteAxe.getPosition().y);
+				spriteAxe.setPosition(2500, spriteAxe.getPosition().y);
 			}
 		}
 
@@ -272,6 +298,8 @@ int main()
 			
 		}
 
+		
+
 		//wrap the player controls to
 		//Make sure we are accepting input
 		if (acceptInput)
@@ -305,6 +333,9 @@ int main()
 				logActive = true;
 
 				acceptInput = false;
+
+				//Play a chop sound
+				chop.play();
 			}
 
 			// Handle the left cursor key
@@ -335,6 +366,9 @@ int main()
 				logActive = true;
 
 				acceptInput = false;
+
+				//Play a chop sound
+				chop.play();
 			}
 		}
 		
@@ -346,6 +380,7 @@ int main()
 
 		if (!paused) 
 		{
+			
 			//Measure time since last frame
 			deltaTime = clock.restart();
 
@@ -369,6 +404,10 @@ int main()
 					textRect.top +
 					textRect.height / 2.0f);
 				messageText.setPosition(1920 / 2.0f, 1080 / 2.0f);
+
+				//Play the out of time sound
+				outOfTime.play();
+				
 			}
 			// Setup the bee
 			if (!beeActive)
@@ -500,6 +539,7 @@ int main()
 			if (score > highScore) 
 			{
 				highScore = score;
+				ss << "HighScore = " << highScore;
 				highScoreText.setString(ss.str());
 			}
 			
@@ -579,8 +619,11 @@ int main()
 
 				messageText.setPosition(1920 / 2.0f,
 					1080 / 2.0f);
+				// Play the death sound
+				death.play();
 			}
-
+			
+			
 
 		} // End if(!paused)
 		/*
@@ -639,7 +682,8 @@ int main()
 
 		if (paused)
 		{
-		
+			//for whatever reason it will only play when paused... even though it plays while the game runs... hmmm
+			battleMusic.play();
 			//Draw our message
 			window.draw(messageText);
 		}
